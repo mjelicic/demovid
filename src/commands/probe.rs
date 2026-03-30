@@ -3,8 +3,8 @@ use std::path::Path;
 
 use crate::ffmpeg;
 
-/// Probe a single file and print its duration.
-pub fn run(file: &Path) -> Result<()> {
+/// Probe a single file and output structured JSON.
+pub fn run(file: &Path, json_mode: bool) -> Result<()> {
     let file = file
         .canonicalize()
         .with_context(|| format!("File not found: {}", file.display()))?;
@@ -12,12 +12,28 @@ pub fn run(file: &Path) -> Result<()> {
     let probe = ffmpeg::ffprobe_json(&file)?;
     let duration = ffmpeg::extract_duration(&probe)?;
 
-    println!("{:.2}s", duration);
+    let file_str = file.to_string_lossy().to_string();
+
+    if json_mode {
+        let out = serde_json::json!({
+            "file": file_str,
+            "duration_secs": duration,
+        });
+        println!("{}", out);
+    } else {
+        eprintln!("Probing: {}", file_str);
+        let out = serde_json::json!({
+            "file": file_str,
+            "duration_secs": duration,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    }
+
     Ok(())
 }
 
-/// Probe all mp4 files in a directory and print JSON summary.
-pub fn run_all(dir: &Path) -> Result<()> {
+/// Probe all mp4 files in a directory; output NDJSON (one JSON object per line).
+pub fn run_all(dir: &Path, json_mode: bool) -> Result<()> {
     let dir = dir
         .canonicalize()
         .with_context(|| format!("Directory not found: {}", dir.display()))?;
@@ -39,33 +55,34 @@ pub fn run_all(dir: &Path) -> Result<()> {
 
     entries.sort_by_key(|e| e.file_name());
 
-    let mut results = Vec::new();
+    if !json_mode {
+        eprintln!("Probing {} mp4 files in {}", entries.len(), dir.display());
+    }
 
     for entry in &entries {
         let path = entry.path();
-        let filename = path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let file_str = path.to_string_lossy().to_string();
 
-        match ffmpeg::ffprobe_json(&path).and_then(|p| ffmpeg::extract_duration(&p)) {
+        let line = match ffmpeg::ffprobe_json(&path).and_then(|p| ffmpeg::extract_duration(&p)) {
             Ok(duration) => {
-                results.push(serde_json::json!({
-                    "file": filename,
-                    "duration": duration,
-                }));
+                serde_json::json!({
+                    "file": file_str,
+                    "duration_secs": duration,
+                    "error": null,
+                })
             }
             Err(e) => {
-                results.push(serde_json::json!({
-                    "file": filename,
+                serde_json::json!({
+                    "file": file_str,
+                    "duration_secs": null,
                     "error": format!("{}", e),
-                }));
+                })
             }
-        }
+        };
+
+        // Always one JSON object per line (NDJSON)
+        println!("{}", line);
     }
 
-    let json = serde_json::to_string_pretty(&results)?;
-    println!("{}", json);
     Ok(())
 }

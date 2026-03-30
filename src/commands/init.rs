@@ -5,16 +5,42 @@ const TEMPLATE_PROJECT_YAML: &str = include_str!("../../templates/project.yaml")
 const TEMPLATE_CLAUDE_MD: &str = include_str!("../../templates/CLAUDE.md");
 const TEMPLATE_AGENTS_MD: &str = include_str!("../../templates/AGENTS.md");
 
-pub fn run(slug: &str) -> Result<()> {
+pub fn run(slug: &str, json_mode: bool) -> Result<()> {
     let home = std::env::var("HOME").context("HOME environment variable not set")?;
     let base = PathBuf::from(home).join("demos").join(slug);
+    let subdirs = vec!["clips", "audio", "renders", "frames"];
 
+    // Idempotent: if dir exists and has project.yaml, return success
     if base.exists() {
-        anyhow::bail!("Project directory already exists: {}", base.display());
+        if base.join("project.yaml").exists() {
+            let base_str = base.to_string_lossy().to_string();
+            let out = serde_json::json!({
+                "project": slug,
+                "path": base_str,
+                "dirs": subdirs,
+                "already_existed": true,
+            });
+            if json_mode {
+                println!("{}", out);
+            } else {
+                eprintln!("Project already exists at {}", base_str);
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            }
+            return Ok(());
+        } else {
+            // Directory exists but not a valid project
+            crate::exit_error(
+                "already_exists",
+                crate::EXIT_ALREADY_EXISTS,
+                &format!(
+                    "Directory exists but is not a valid demovid project (no project.yaml): {}",
+                    base.display()
+                ),
+            );
+        }
     }
 
     // Create directory structure
-    let subdirs = ["clips", "audio", "renders", "frames"];
     for subdir in &subdirs {
         std::fs::create_dir_all(base.join(subdir))
             .with_context(|| format!("Failed to create {}", subdir))?;
@@ -32,14 +58,20 @@ pub fn run(slug: &str) -> Result<()> {
     std::fs::write(base.join("AGENTS.md"), TEMPLATE_AGENTS_MD)
         .context("Failed to write AGENTS.md")?;
 
-    println!("Created project: {}", base.display());
-    println!("  clips/");
-    println!("  audio/");
-    println!("  renders/");
-    println!("  frames/");
-    println!("  project.yaml");
-    println!("  CLAUDE.md");
-    println!("  AGENTS.md");
+    let base_str = base.to_string_lossy().to_string();
+    let out = serde_json::json!({
+        "project": slug,
+        "path": base_str,
+        "dirs": subdirs,
+        "already_existed": false,
+    });
+
+    if json_mode {
+        println!("{}", out);
+    } else {
+        eprintln!("Created project: {}", base_str);
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    }
 
     Ok(())
 }
