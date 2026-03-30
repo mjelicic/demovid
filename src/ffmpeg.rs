@@ -118,7 +118,7 @@ pub fn generate_silence(seconds: f64, output: &Path) -> Result<()> {
             "-t",
             &duration,
             "-c:a",
-            "pcm_f32le",
+            "pcm_s16le",
             output_str,
             "-y",
         ])
