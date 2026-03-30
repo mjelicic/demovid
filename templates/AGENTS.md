@@ -1,31 +1,76 @@
-# Demo Video Production — Agent Instructions (Codex)
+# Demo Video Production -- Agent Instructions (Codex)
 
-This project uses `demovid` CLI for demo video production.
-See project.yaml for current workflow state.
+Produce a demo video using `demovid` CLI. State is in `project.yaml`.
 
-## Workflow
+## Core Rules
 
-Follow the 10-step workflow. Never advance without human approval.
-Read project.yaml to determine the current step and resume from there.
+1. Read `project.yaml` first. Resume from the `step` field.
+2. Never advance without explicit human approval.
+3. On rejection: redo the step, present results, wait for approval again.
+4. On command failure: show the JSON error, ask the human how to proceed.
+5. After each step: update `project.yaml` with results and next step number.
 
-1. OUTCOME — Human defines what audience should believe
-2. SCENARIO — Human defines the plot
-3. SHOT LIST — Suggest clips to record, wait for approval
-4. NARRATIVE — Help write voiceover text, wait for approval
-5. CLIPS — Human records and drops in clips/
-6. MAPPING — Map narration segments to clips, wait for approval
-7. INDIVIDUAL — Render each clip+narration, wait for approval on each
-8. ASSEMBLY — Combine approved clips into final video
-9. FINAL REVIEW — Human approves or flags specific clips
-10. SHIP
+## 10-Step Workflow
+
+### Step 1: Gather Clips
+Probe source clips in `clips/`:
+```bash
+demovid probe-all clips/
+```
+Populate `clips[]` in project.yaml with `file`, `slug`, `duration_secs`. Set `step: 2`.
+
+### Step 2: Plan Narration
+Draft narration for each clip (~150 words/minute). Write to `clips[i].narration`. Set `step: 3`.
+
+### Step 3: Generate TTS
+```bash
+demovid tts "<narration>" audio/<slug>.wav --voice af_bella
+```
+Run for each clip. Record `audio_file`. Set `step: 4`.
+
+### Step 4: Check Audio
+```bash
+demovid probe audio/<slug>.wav
+```
+Compare audio vs video duration. Report table. Flag audio-longer-than-video. Set `step: 5`.
+
+### Step 5: Trim/Pad
+- Audio shorter: `demovid silence <gap> audio/<slug>-pad.wav` then `demovid concat-audio audio/<slug>.wav audio/<slug>-pad.wav -o audio/<slug>-final.wav`
+- Audio longer: flag to human (edit narration or re-record clip).
+- Audio matches (within 0.5s): `cp audio/<slug>.wav audio/<slug>-final.wav`
+
+Update `audio_file` to `-final.wav`. Set `step: 6`.
+
+### Step 6: Render Clips
+```bash
+demovid render-clip clips/<file> audio/<slug>-final.wav renders/<slug>.mp4
+```
+Record `render_file`. Set `step: 7`.
+
+### Step 7: Review Clips
+Present each rendered clip path. Human approves/rejects each. Record `approved` boolean.
+All approved -> `step: 9`. Any rejected -> `step: 8`.
+
+### Step 8: Record Fixes
+Redo Steps 2-7 for rejected clips only. Once all approved, set `step: 9`.
+
+### Step 9: Assemble
+```bash
+demovid assemble renders/<slug1>.mp4 renders/<slug2>.mp4 ... -o renders/final.mp4
+```
+Record `final_render`. Set `step: 10`.
+
+### Step 10: Final Review
+Human watches `renders/final.mp4`. Approved -> done. Rejected -> `step: 8` for flagged clips.
 
 ## Commands
 
-- `demovid probe <file>` — Get clip duration
-- `demovid probe-all <dir>` — Get all clip durations as JSON
-- `demovid frames <clip> <outdir> --fps 2` — Extract frames for analysis
-- `demovid tts <text> <output>` — Generate TTS audio
-- `demovid silence <seconds> <output>` — Generate silence
-- `demovid concat-audio <files...> -o <output>` — Concatenate audio
-- `demovid render-clip <video> <audio> <output>` — Render clip with audio
-- `demovid assemble <clips...> -o <output>` — Assemble final video
+| Command | Purpose |
+|---------|---------|
+| `demovid probe <file>` | File metadata (JSON) |
+| `demovid probe-all <dir>` | All files metadata |
+| `demovid tts "<text>" <out> --voice af_bella` | Generate TTS |
+| `demovid silence <secs> <out>` | Generate silence |
+| `demovid concat-audio <files...> -o <out>` | Concat audio |
+| `demovid render-clip <video> <audio> <out>` | Render clip |
+| `demovid assemble <clips...> -o <out>` | Assemble final |

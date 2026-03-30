@@ -1,21 +1,23 @@
 version: 1
-slug: "{{slug}}"
-step: outcome
-
-outcome: ""
-scenario: ""
+project:
+  name: "My Demo"
+  slug: "{{slug}}"
+  step: 1
 
 voice:
   provider: local
   voice: af_bella
   speed: 0.95
 
-shots: []
-narrative: []
-clips: []
-mapping: []
-renders: []
+clips:
+  - file: ""
+    slug: ""
+    duration_secs: 0.0
+    narration: ""
+    audio_file: ""
+    render_file: ""
+    approved: false
 
-final:
-  file: renders/final.mp4
-  status: pending
+final_render: ""
+
+notes: ""
