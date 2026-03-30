@@ -1,0 +1,21 @@
+version: 1
+slug: "{{slug}}"
+step: outcome
+
+outcome: ""
+scenario: ""
+
+voice:
+  provider: local
+  voice: af_bella
+  speed: 0.95
+
+shots: []
+narrative: []
+clips: []
+mapping: []
+renders: []
+
+final:
+  file: renders/final.mp4
+  status: pending
