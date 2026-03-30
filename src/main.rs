@@ -136,6 +136,12 @@ pub fn exit_error(error_type: &str, code: i32, detail: &str) -> ! {
 }
 
 fn main() {
+    // Restore default SIGPIPE handling so piping to `head` etc. exits cleanly
+    // instead of panicking on broken pipe.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+
     let cli = Cli::parse();
     let json_mode = use_json(cli.json);
 
@@ -143,13 +149,29 @@ fn main() {
         Commands::Init { slug, yes: _ } => commands::init::run(&slug, json_mode),
         Commands::Probe { file } => commands::probe::run(&file, json_mode),
         Commands::ProbeAll { dir } => commands::probe::run_all(&dir, json_mode),
-        Commands::Frames { clip, outdir, fps } => commands::frames::run(&clip, &outdir, fps, json_mode),
+        Commands::Frames { clip, outdir, fps } => {
+            commands::frames::run(&clip, &outdir, fps, json_mode)
+        }
         Commands::Schema { command } => commands::schema::run(&command),
-        Commands::Tts { .. } => commands::tts::run(),
-        Commands::Silence { .. } => commands::silence::run(),
-        Commands::ConcatAudio { .. } => commands::concat_audio::run(),
-        Commands::RenderClip { .. } => commands::render_clip::run(),
-        Commands::Assemble { .. } => commands::assemble::run(),
+        Commands::Tts {
+            text,
+            output,
+            voice,
+            speed,
+            provider,
+        } => commands::tts::run(&text, &output, &voice, speed, &provider, json_mode),
+        Commands::Silence { seconds, output } => {
+            commands::silence::run(seconds, &output, json_mode)
+        }
+        Commands::ConcatAudio { files, output } => {
+            commands::concat_audio::run(&files, &output, json_mode)
+        }
+        Commands::RenderClip {
+            video,
+            audio,
+            output,
+        } => commands::render_clip::run(&video, &audio, &output, json_mode),
+        Commands::Assemble { clips, output } => commands::assemble::run(&clips, &output, json_mode),
     };
 
     if let Err(e) = result {

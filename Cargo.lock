@@ -111,6 +111,7 @@ dependencies = [
  "anyhow",
  "clap",
  "is-terminal",
+ "libc",
  "serde",
  "serde_json",
  "serde_yaml",

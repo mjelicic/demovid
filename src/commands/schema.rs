@@ -58,7 +58,10 @@ pub fn run(command: &str) -> Result<()> {
             crate::exit_error(
                 "invalid_input",
                 crate::EXIT_INVALID_INPUT,
-                &format!("Unknown command for schema: '{}'. Valid: probe, probe-all, frames, init", other),
+                &format!(
+                    "Unknown command for schema: '{}'. Valid: probe, probe-all, frames, init",
+                    other
+                ),
             );
         }
     };
