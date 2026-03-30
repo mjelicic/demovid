@@ -53,7 +53,7 @@ pub fn run(video: &Path, audio: &Path, output: &Path, json_mode: bool) -> Result
                 "audio_duration_secs": audio_duration,
                 "output_duration_secs": output_duration,
                 "strategy": strategy.as_str(),
-                "video_encoder": "h264_videotoolbox",
+                "video_encoder": ffmpeg::h264_encoder(),
                 "audio_encoder": "aac"
             })
         );

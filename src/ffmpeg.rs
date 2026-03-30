@@ -2,7 +2,29 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+/// Returns the best available H.264 encoder: `h264_videotoolbox` if available, else `libx264`.
+pub fn h264_encoder() -> &'static str {
+    static ENCODER: OnceLock<&'static str> = OnceLock::new();
+    ENCODER.get_or_init(|| {
+        let output = Command::new("ffmpeg")
+            .args(["-hide_banner", "-encoders"])
+            .output();
+        match output {
+            Ok(out) => {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                if stdout.contains("h264_videotoolbox") {
+                    "h264_videotoolbox"
+                } else {
+                    "libx264"
+                }
+            }
+            Err(_) => "libx264",
+        }
+    })
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RenderStrategy {
@@ -214,9 +236,12 @@ pub fn render_clip(
         "-map".to_string(),
         "[a]".to_string(),
         "-c:v".to_string(),
-        "h264_videotoolbox".to_string(),
-        "-allow_sw".to_string(),
-        "1".to_string(),
+        h264_encoder().to_string(),
+    ];
+    if h264_encoder() == "h264_videotoolbox" {
+        args.extend(["-allow_sw".to_string(), "1".to_string()]);
+    }
+    args.extend([
         "-b:v".to_string(),
         "8M".to_string(),
         "-pix_fmt".to_string(),
@@ -227,7 +252,7 @@ pub fn render_clip(
         "192k".to_string(),
         "-movflags".to_string(),
         "+faststart".to_string(),
-    ];
+    ]);
 
     match strategy {
         RenderStrategy::PadAudioToVideo => args.push("-shortest".to_string()),
@@ -290,9 +315,12 @@ pub fn assemble_clips(clips: &[PathBuf], output: &Path) -> Result<()> {
         "-map".to_string(),
         "[a]".to_string(),
         "-c:v".to_string(),
-        "h264_videotoolbox".to_string(),
-        "-allow_sw".to_string(),
-        "1".to_string(),
+        h264_encoder().to_string(),
+    ]);
+    if h264_encoder() == "h264_videotoolbox" {
+        args.extend(["-allow_sw".to_string(), "1".to_string()]);
+    }
+    args.extend([
         "-b:v".to_string(),
         "10M".to_string(),
         "-pix_fmt".to_string(),

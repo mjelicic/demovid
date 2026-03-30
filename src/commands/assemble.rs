@@ -36,16 +36,17 @@ pub fn run(clips: &[PathBuf], output: &std::path::Path, json_mode: bool) -> Resu
                 "output": output,
                 "clip_count": clips.len(),
                 "output_duration_secs": output_duration,
-                "video_encoder": "h264_videotoolbox",
+                "video_encoder": ffmpeg::h264_encoder(),
                 "audio_encoder": "aac"
             })
         );
     } else {
         println!(
-            "assemble ok → {} ({} clips, {:.3}s, h264_videotoolbox)",
+            "assemble ok → {} ({} clips, {:.3}s, {})",
             output.display(),
             clips.len(),
-            output_duration
+            output_duration,
+            ffmpeg::h264_encoder()
         );
     }
 
