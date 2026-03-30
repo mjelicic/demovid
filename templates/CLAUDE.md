@@ -75,7 +75,7 @@ The human should have placed screen recordings in the `clips/` directory.
 For each clip, write narration text that fits the clip's duration.
 
 1. If the human hasn't provided narration guidance, ask what each clip should convey.
-2. For each clip, draft narration text. Rule of thumb: ~150 words per minute, so a 10-second clip needs ~25 words.
+2. For each clip, draft narration text. Rule of thumb: ~130 words per minute (be conservative -- TTS often runs longer than expected). A 10-second clip needs ~20 words. It's easier to pad short audio with silence than to re-draft long narration.
 3. Write each narration into `project.yaml` under `clips[i].narration`.
 4. Set `step: 3`.
 5. Present all narration text and wait for approval.
