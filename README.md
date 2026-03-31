@@ -7,6 +7,7 @@ AI-agent-driven demo video production. Rust CLI + Kokoro TTS. Fully local, Apple
 - macOS (Apple Silicon)
 - [Rust](https://rustup.rs) (stable)
 - ffmpeg: `brew install ffmpeg`
+- cmake: `brew install cmake` (needed to build the TTS engine)
 
 ## Install
 

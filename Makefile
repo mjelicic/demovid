@@ -1,8 +1,17 @@
-.PHONY: install uninstall build
+.PHONY: install uninstall build check-deps
 
 PREFIX ?= /usr/local
 
-build:
+check-deps:
+	@command -v cmake >/dev/null 2>&1 || { \
+		echo "error: cmake is required to build demovid"; \
+		echo ""; \
+		echo "  brew install cmake"; \
+		echo ""; \
+		exit 1; \
+	}
+
+build: check-deps
 	cargo build --release
 
 install: build
