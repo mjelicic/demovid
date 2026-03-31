@@ -1,6 +1,6 @@
 .PHONY: install uninstall build check-deps
 
-PREFIX ?= /usr/local
+PREFIX ?= $(HOME)/.local
 
 check-deps:
 	@command -v cmake >/dev/null 2>&1 || { \

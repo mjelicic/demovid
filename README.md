@@ -17,12 +17,19 @@ cd demovid
 make install
 ```
 
-This builds a release binary and copies it to `/usr/local/bin/demovid`.
+This builds a release binary and copies it to `~/.local/bin/demovid`.
+
+Make sure `~/.local/bin` is in your `PATH`:
+
+```sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
 To install to a custom location:
 
 ```sh
-make install PREFIX=~/.local
+make install PREFIX=/usr/local  # may require sudo on macOS
 ```
 
 To uninstall:
