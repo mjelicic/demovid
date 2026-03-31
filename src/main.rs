@@ -135,6 +135,36 @@ pub fn exit_error(error_type: &str, code: i32, detail: &str) -> ! {
     std::process::exit(code)
 }
 
+fn check_system_deps() {
+    let missing: Vec<&str> = ["ffmpeg", "ffprobe"]
+        .iter()
+        .copied()
+        .filter(|tool| {
+            std::process::Command::new(tool)
+                .arg("-version")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .is_err()
+        })
+        .collect();
+
+    if missing.is_empty() {
+        return;
+    }
+
+    eprintln!(
+        "error: missing required system tools: {}",
+        missing.join(", ")
+    );
+    eprintln!();
+    eprintln!("Install with Homebrew:");
+    eprintln!("  brew install ffmpeg");
+    eprintln!();
+    eprintln!("If you don't have Homebrew, see https://brew.sh");
+    std::process::exit(EXIT_TOOL_ERROR);
+}
+
 fn main() {
     // Restore default SIGPIPE handling so piping to `head` etc. exits cleanly
     // instead of panicking on broken pipe.
@@ -144,6 +174,13 @@ fn main() {
 
     let cli = Cli::parse();
     let json_mode = use_json(cli.json);
+
+    // Check for ffmpeg/ffprobe before running any command that needs them.
+    // init, schema, and tts are pure-Rust and don't shell out to ffmpeg.
+    match &cli.command {
+        Commands::Init { .. } | Commands::Schema { .. } | Commands::Tts { .. } => {}
+        _ => check_system_deps(),
+    }
 
     let result = match cli.command {
         Commands::Init { slug, yes: _ } => commands::init::run(&slug, json_mode),
